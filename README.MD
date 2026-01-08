@@ -95,6 +95,13 @@ We use root-level scripts to manage the workflow. Run these from the root folder
 - **Function**: Calculates velocity, collision, and win conditions.
 - **Magic**: Uses the `#[ephemeral]` macro to skip Solana consensus for gameplay ticks, achieving 50ms block times.
 
+## 🎮 Game Inspirations
+
+This project adapts classic Unity game mechanics for blockchain gaming:
+
+- **Tanks Game**: Based on the [3D-Tanks-Game-Unity](https://github.com/choubari/3D-Tanks-Game-Unity) tutorial, featuring physics-based tank combat.
+- **Sumo Arena**: Inspired by real-time fighting games like [Brick & Ball](https://github.com/MusouCrow/BrickAndBall?tab=readme-ov-file), adapted for mobile PVP.
+
 ## 📦 Unity Assets Structure
 
 We keep the Assets folder clean by strictly separating source code from plugins.
