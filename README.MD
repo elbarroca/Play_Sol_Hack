@@ -22,10 +22,10 @@ This repository follows a strict Monorepo structure to separate concerns between
 
 ```mermaid
 graph TD
-    A[Unity Client (PSG1)] -->|Signed Input Packets| B(MagicBlock Ephemeral Rollup)
-    B -->|State Updates 20hz| A
-    C[Solana L1 Bank] -->|Deposit Wager| B
-    B -->|Settle Winner| C
+    A["Unity Client (PSG1)"] -->|"Signed Input Packets"| B["MagicBlock Ephemeral Rollup"]
+    B -->|"State Updates 20hz"| A
+    C["Solana L1 Bank"] -->|"Deposit Wager"| B
+    B -->|"Settle Winner"| C
 ```
 
 ### Directory Map
