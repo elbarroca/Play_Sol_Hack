@@ -6,6 +6,15 @@ using Solana.Unity.Wallet;
 using Solana.Unity.Rpc;
 using Solana.Unity.Rpc.Models;
 
+[System.Serializable]
+public class NetworkGameState
+{
+    public long[] Player1Pos = new long[2];
+    public long[] Player2Pos = new long[2];
+    public long Player1Rotation;
+    public long Player2Rotation;
+}
+
 public class MagicBlockClient : MonoBehaviour
 {
     [Header("MagicBlock Configuration")]
@@ -16,6 +25,7 @@ public class MagicBlockClient : MonoBehaviour
     private IStreamingRpcClient streamingClient;
 
     public static MagicBlockClient Instance { get; private set; }
+    public NetworkGameState CurrentState { get; private set; } = new NetworkGameState();
 
     private void Awake()
     {
