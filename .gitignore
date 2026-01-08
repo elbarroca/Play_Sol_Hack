@@ -1,0 +1,61 @@
+# --- Unity Ignores ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.pidb.meta
+*.pdb
+*.suo
+*.sln
+*.csproj
+.idea/
+.vscode/
+
+# --- Rust/Anchor Ignores ---
+blockchain/target/
+blockchain/.anchor/
+blockchain/**/.DS_Store
+node_modules/
+*.tsbuildinfo
+# ==========================================
+# UNITY IGNORES (Corrected for 'client/' folder)
+# ==========================================
+# These must point to where Unity actually is
+client/[Ll]ibrary/
+client/[Tt]emp/
+client/[Oo]bj/
+client/[Bb]uild/
+client/[Bb]uilds/
+client/[Ll]ogs/
+client/[Uu]ser[Ss]ettings/
+client/[Mm]emoryCaptures/
+
+# Unity generated files (Pattern match anywhere)
+*.pidb.meta
+*.pdb
+*.suo
+*.sln
+*.csproj
+.idea/
+.vscode/
+.DS_Store
+
+# ==========================================
+# BLOCKCHAIN IGNORES
+# ==========================================
+blockchain/target/
+blockchain/.anchor/
+blockchain/**/.DS_Store
+node_modules/
+*.tsbuildinfo
+
+# ==========================================
+# MONOREPO IGNORES
+# ==========================================
+# Ignore the libs folder content but keep the folder itself
+libs/**
+!libs/clone_here.txt

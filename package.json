@@ -1,0 +1,25 @@
+{
+  "name": "play-sol-hack-monorepo",
+  "version": "0.1.0",
+  "description": "Hard-Stakes: PSG1 Sumo Game on Solana Ephemeral Rollups",
+  "private": true,
+  "scripts": {
+    "--- BLOCKCHAIN COMMANDS ---": "",
+    "chain:build": "cd blockchain && anchor build",
+    "chain:test": "cd blockchain && anchor test",
+    "chain:deploy:devnet": "cd blockchain && anchor deploy --provider.cluster devnet",
+    "chain:clean": "cd blockchain && anchor clean",
+    
+    "--- CLIENT GEN COMMANDS ---": "",
+    "gen:idl": "cd blockchain && anchor build && cp target/idl/*.json idl/",
+    "gen:csharp": "echo 'TODO: Run a script to convert IDL JSON to C# classes'",
+    
+    "--- SETUP COMMANDS ---": "",
+    "setup:deps": "cd blockchain && yarn install",
+    "setup:unity": "echo 'Open Unity Hub -> Add Project -> Select client folder'"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}
