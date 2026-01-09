@@ -1,58 +1,43 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using PlaceholderHack.Networking;
 
 namespace PlaceholderHack.Input
 {
     public class PlayerInput : MonoBehaviour
     {
-        [Header("Input Configuration")]
-        [SerializeField] private InputActionAsset inputActions;
+        // Reference to our Interface (could be Mock, could be Blockchain)
+        private IGameStateProvider _network;
 
-        private InputAction moveAction;
-        private InputAction interactAction;
+        [Header("Settings")]
+        [SerializeField] private float _inputThreshold = 0.1f;
 
-        public Vector2 MoveInput { get; private set; }
-        public bool InteractPressed { get; private set; }
-
-        private void Awake()
+        void Awake()
         {
-            if (inputActions != null)
+            // For now, grab the Mock. Later, this grabs MagicBlockClient
+            _network = GetComponent<IGameStateProvider>();
+        }
+
+        public void OnMove(InputAction.CallbackContext context)
+        {
+            if (_network == null) return;
+
+            Vector2 input = context.ReadValue<Vector2>();
+
+            // 1. Deadzone Check
+            if (input.magnitude < _inputThreshold)
             {
-                moveAction = inputActions.FindAction("Move");
-                interactAction = inputActions.FindAction("Interact");
-
-                moveAction.performed += ctx => MoveInput = ctx.ReadValue<Vector2>();
-                moveAction.canceled += ctx => MoveInput = Vector2.zero;
-
-                interactAction.performed += ctx => InteractPressed = true;
-                interactAction.canceled += ctx => InteractPressed = false;
+                _network.SendInput(0, 0);
+                return;
             }
-        }
 
-        private void OnEnable()
-        {
-            moveAction?.Enable();
-            interactAction?.Enable();
-        }
+            // 2. Quantize Data (Float -> Int)
+            // We multiply by 10 to get a decent range (-10 to 10) for the engine
+            int xInt = Mathf.RoundToInt(input.x * 10);
+            int yInt = Mathf.RoundToInt(input.y * 10);
 
-        private void OnDisable()
-        {
-            moveAction?.Disable();
-            interactAction?.Disable();
-        }
-
-        private void Start()
-        {
-            Debug.Log("PlayerInput initialized - ready for blockchain gaming!");
-        }
-
-        private void LateUpdate()
-        {
-            // Reset input flags that should only be true for one frame
-            if (InteractPressed)
-            {
-                InteractPressed = false;
-            }
+            // 3. Send to "Network"
+            _network.SendInput(xInt, yInt);
         }
     }
 }
