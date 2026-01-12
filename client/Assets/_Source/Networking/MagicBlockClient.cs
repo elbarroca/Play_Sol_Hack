@@ -25,11 +25,14 @@ namespace PlaceholderHack.Networking
         {
             // FIX 1: Use the custom URL string, or use Cluster.DevNet (Capital N)
             _rpc = ClientFactory.GetClient(RpcUrl);
-            
+
             _programId = new PublicKey(ProgramId);
-            
-            if(!string.IsNullOrEmpty(GameStateAddress)) 
+
+            if(!string.IsNullOrEmpty(GameStateAddress))
+            {
                 _gameStateKey = new PublicKey(GameStateAddress);
+                StartPolling(); // <--- START THE LOOP
+            }
         }
 
         public void SendMoveCommand(sbyte x, sbyte y)
@@ -84,9 +87,46 @@ namespace PlaceholderHack.Networking
             List<byte> data = new List<byte>();
             // "global:move_player" discriminator
             data.AddRange(new byte[] { 46, 219, 237, 204, 23, 222, 235, 153 });
-            data.Add((byte)x); 
+            data.Add((byte)x);
             data.Add((byte)y);
             return data.ToArray();
+        }
+
+        public async void StartPolling()
+        {
+            Debug.Log("👁️ Starting State Polling...");
+            while (this != null && _gameStateKey != null) // Safety check
+            {
+                try
+                {
+                    // 1. Fetch Account Data from Solana
+                    var accountInfo = await _rpc.GetAccountInfoAsync(_gameStateKey);
+
+                    if (accountInfo.Result.Value != null)
+                    {
+                        // 2. Deserialize (Base64 -> C# Class)
+                        byte[] data = Convert.FromBase64String(accountInfo.Result.Value.Data[0]);
+                        var state = PlaceholderHack.Core.GameStateAccount.Deserialize(data);
+
+                        // 3. Update The Visuals (NetworkSumo)
+                        // Find the ball in the scene
+                        var sumoBall = FindFirstObjectByType<PlaceholderHack.Games.Sumo.NetworkSumo>();
+
+                        if (sumoBall != null)
+                        {
+                            // Send the X/Y coordinates to the interpolator
+                            sumoBall.OnServerUpdate(state.P1Coords[0], state.P1Coords[1]);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    // Suppress errors if we just haven't deployed yet
+                }
+
+                // 4. Wait 100ms (10Hz Refresh Rate)
+                await UniTask.Delay(100);
+            }
         }
     }
 }

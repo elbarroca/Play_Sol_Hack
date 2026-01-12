@@ -82,3 +82,47 @@ anchor test --run tests/engine.ts
 
 - **Desserialização**: Ao ler a conta GameState no C#, lembre-se de dividir as coordenadas por 100.0f para obter a posição no mundo Unity.
 - **Predição**: O cliente deve mover o jogador visualmente antes da resposta da blockchain para suavidade, mas deve corrigir (snap) se a resposta da blockchain diferir (Reconciliação).
+
+## 🚀 Deploy to Devnet
+
+Now that the code is fixed, push it to the network.
+
+**Terminal:** `cd blockchain`  
+**Build:** `anchor build`  
+**Deploy:** `anchor deploy --provider.cluster devnet`
+
+(Copy the Program Id output. Ensure it matches your code. If it changed, update lib.rs and MagicBlockClient.cs).
+
+## 🎮 The Validation Ritual (How to Test)
+
+Now we connect the pieces.
+
+### Generate the Game Address
+
+Run your initialization script (ensure blockchain/scripts/init-game.ts uses the new struct structure, or just use the test command):
+
+```bash
+anchor test --skip-deploy --run tests/engine.ts
+```
+
+Look at the logs for "Game State Address" or "GameState Public Key".
+
+### Configure Unity
+
+Go to Inspector -> [NetworkManager].  
+Paste that address into Game State Address.
+
+### Fuel the Session
+
+Since we don't have the "Transfer SOL" button yet, manually send 0.01 SOL to the Session Key Address you see in the Console log (from your Phantom wallet or CLI `solana transfer <KEY> 0.01`).
+
+### Play
+
+Press Play.  
+Move the Joystick.
+
+### Validation
+
+If the ball moves in the Unity Scene View, IT WORKS.  
+
+**Flow:** Input -> Bridge -> MagicBlock Client -> Solana Devnet -> Rust Logic -> Solana State -> MagicBlock Client -> NetworkSumo -> Transform.position.
