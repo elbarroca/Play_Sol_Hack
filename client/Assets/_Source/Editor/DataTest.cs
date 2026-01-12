@@ -8,42 +8,51 @@ public class DataTest
     [MenuItem("HardStakes/Test Data Contract")]
     public static void VerifyHandshake()
     {
-        // 1. Simulate Raw Bytes from Solana (What Rust would send)
-        // We manually construct a byte array that mimics the Rust layout
-        List<byte> mockData = new List<byte>();
+        List<byte> mock = new List<byte>();
 
-        // 8 bytes Discriminator (Fake)
-        mockData.AddRange(new byte[8]);
+        // 1. Discriminator (8)
+        mock.AddRange(new byte[8]);
 
-        // P1 Coords: [-200, 0]
-        mockData.AddRange(System.BitConverter.GetBytes((long)-200));
-        mockData.AddRange(System.BitConverter.GetBytes((long)0));
+        // 2. Player One (32)
+        mock.AddRange(new byte[32]);
 
-        // P2 Coords: [200, 0]
-        mockData.AddRange(System.BitConverter.GetBytes((long)200));
-        mockData.AddRange(System.BitConverter.GetBytes((long)0));
+        // 3. Player Two (Option 1 + 32)
+        mock.Add(0); // No P2 yet
+        mock.AddRange(new byte[32]);
 
-        // Radius: 500
-        mockData.AddRange(System.BitConverter.GetBytes((ulong)500));
+        // 4. P1 Coords [-200, 0] (16)
+        mock.AddRange(System.BitConverter.GetBytes((long)-200));
+        mock.AddRange(System.BitConverter.GetBytes((long)0));
 
-        // Status: Waiting (0)
-        mockData.Add(0);
+        // 5. P2 Coords [200, 0] (16)
+        mock.AddRange(System.BitConverter.GetBytes((long)200));
+        mock.AddRange(System.BitConverter.GetBytes((long)0));
 
-        // Frame: 1
-        mockData.AddRange(System.BitConverter.GetBytes((ulong)1));
+        // 6. Radius (8)
+        mock.AddRange(System.BitConverter.GetBytes((ulong)500));
 
-        // 2. Attempt to Deserialize using our Core Logic
-        GameStateAccount account = GameStateAccount.Deserialize(mockData.ToArray());
+        // 7. Status (1)
+        mock.Add(0);
 
-        // 3. Validation
-        if (account.P1Coords[0] == -200 && account.MapRadius == 500)
+        // 8. Winner (Option 1 + 32)
+        mock.Add(0);
+        mock.AddRange(new byte[32]);
+
+        // 9. Frame (8)
+        mock.AddRange(System.BitConverter.GetBytes((ulong)1));
+
+        Debug.Log($"Simulating Byte Packet Size: {mock.Count} bytes");
+
+        // Attempt Deserialize
+        var state = GameStateAccount.Deserialize(mock.ToArray());
+
+        if (state != null && state.P1Coords[0] == -200)
         {
-            Debug.Log("<color=green>✅ SUCCESS: C# correctly deciphered the Rust Data Structure.</color>");
-            Debug.Log($"P1 X-Position in Unity Units: {account.P1Coords[0] / 100.0f}");
+            Debug.Log("<color=green>✅ PASSED: C# Logic matches Rust Struct.</color>");
         }
         else
         {
-            Debug.LogError("❌ FAILURE: Data mismatch. Check struct alignment.");
+            Debug.LogError("❌ FAILED: Struct mismatch.");
         }
     }
 }

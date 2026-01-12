@@ -1,34 +1,54 @@
 using UnityEngine;
 using Solana.Unity.Wallet;
 using Solana.Unity.Rpc.Models;
+using System.Threading.Tasks;
 
-public class SessionKeyManager : MonoBehaviour
+namespace PlaceholderHack.Networking
 {
-    // The temporary keypair for the match
-    public Account SessionAccount { get; private set; }
-
-    public void GenerateNewSession()
+    public class SessionKeyManager : MonoBehaviour
     {
-        // 1. Generate a fresh keypair in memory
-        SessionAccount = new Account();
-        Debug.Log($"🔑 Generated Session Key: {SessionAccount.PublicKey}");
+        public static SessionKeyManager Instance;
 
-        // 2. Store it securely (In memory only for hackathon is fine)
-        // Ideally, we don't save this to disk to ensure it's ephemeral.
-    }
+        // This is the "Burner" wallet for high-frequency moves
+        public Account SessionAccount { get; private set; }
 
-    public TransactionInstruction CreateDelegateInstruction(PublicKey mainWallet, PublicKey gameProgramId)
-    {
-        // This prepares the TX for the main wallet to sign later.
-        // Even without the Rust program, we can structure this logic.
-        Debug.Log("📝 Creating Delegation Instruction...");
-        return null; // Placeholder until IDL is loaded
-    }
+        // Check if we are ready to play
+        public bool IsSessionValid => SessionAccount != null;
 
-    public byte[] SignGamePacket(byte[] instructionData)
-    {
-        // This is what happens 20 times a second during gameplay
-        if(SessionAccount == null) return null;
-        return SessionAccount.Sign(instructionData);
+        void Awake()
+        {
+            if (Instance == null) Instance = this;
+        }
+
+        void Start()
+        {
+            // FOR TESTING ONLY: Auto-generate key on startup
+            GenerateNewSession();
+        }
+
+        // Call this when entering the Lobby
+        public void GenerateNewSession()
+        {
+            // 1. Create a fresh keypair in memory
+            SessionAccount = new Account();
+            Debug.Log($"🔑 Generated Session Key: {SessionAccount.PublicKey}");
+        }
+
+        // In a real MagicBlock implementation, this would send a
+        // "Delegate" transaction to the on-chain program.
+        // For this Hackathon MVP, we will sign directly with this key
+        // assuming the Engine allows it (or we skip delegation for local testing).
+        public Transaction SignTransaction(Transaction tx)
+        {
+            if (!IsSessionValid)
+            {
+                Debug.LogError("❌ No Session Key! Cannot sign move.");
+                return null;
+            }
+
+            // Sign the transaction with the in-memory private key
+            tx.Sign(SessionAccount);
+            return tx;
+        }
     }
 }

@@ -19,7 +19,7 @@ namespace PlaceholderHack.Games.Tanks
 
         void Start()
         {
-            _network = FindObjectOfType<MagicBlockClient>();
+            _network = FindFirstObjectByType<MagicBlockClient>();
         }
 
         void Update()

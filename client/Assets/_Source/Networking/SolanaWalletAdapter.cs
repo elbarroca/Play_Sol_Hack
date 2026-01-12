@@ -3,179 +3,189 @@ using System;
 using System.Threading.Tasks;
 using Solana.Unity.Wallet;
 using Solana.Unity.Wallet.Bip39;
+using Solana.Unity.Rpc; // Added for ClientFactory
+using Solana.Unity.Rpc.Models; // Added for Cluster
 
-public class SolanaWalletAdapter : MonoBehaviour
+// FIX 1: Wrap in the correct namespace so it sees other scripts
+namespace PlaceholderHack.Networking 
 {
-    [Header("Wallet Configuration")]
-    [SerializeField] private string defaultDerivationPath = "m/44'/501'/0'/0'";
-
-    public static SolanaWalletAdapter Instance { get; private set; }
-
-    private Wallet wallet;
-    private Account currentAccount;
-
-    public event Action<Account> OnWalletConnected;
-    public event Action OnWalletDisconnected;
-    public event Action<ulong> OnBalanceChanged;
-
-    private void Awake()
+    public class SolanaWalletAdapter : MonoBehaviour
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
+        [Header("Wallet Configuration")]
+        [SerializeField] private string defaultDerivationPath = "m/44'/501'/0'/0'";
 
-    public async Task<bool> CreateWallet(string mnemonic = null)
-    {
-        try
+        public static SolanaWalletAdapter Instance { get; private set; }
+
+        private Wallet wallet;
+        private Account currentAccount;
+
+        public event Action<Account> OnWalletConnected;
+        public event Action OnWalletDisconnected;
+        public event Action<ulong> OnBalanceChanged;
+
+        private void Awake()
         {
-            if (string.IsNullOrEmpty(mnemonic))
+            if (Instance == null)
             {
-                // Generate new mnemonic
-                var generatedMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
-                mnemonic = generatedMnemonic.ToString();
-                Debug.Log($"Generated new wallet mnemonic: {mnemonic}");
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
             }
-
-            wallet = new Wallet(mnemonic);
-            currentAccount = wallet.GetAccount(0);
-
-            PlayerPrefs.SetString("WalletMnemonic", mnemonic);
-            PlayerPrefs.Save();
-
-            OnWalletConnected?.Invoke(currentAccount);
-            Debug.Log($"Wallet created for address: {currentAccount.PublicKey}");
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to create wallet: {ex.Message}");
-            return false;
-        }
-    }
-
-    public async Task<bool> LoadWallet()
-    {
-        try
-        {
-            string savedMnemonic = PlayerPrefs.GetString("WalletMnemonic", null);
-            if (string.IsNullOrEmpty(savedMnemonic))
+            else
             {
-                Debug.LogWarning("No saved wallet found");
+                Destroy(gameObject);
+            }
+        }
+
+        public async Task<bool> CreateWallet(string mnemonic = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(mnemonic))
+                {
+                    // Generate new mnemonic
+                    var generatedMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
+                    mnemonic = generatedMnemonic.ToString();
+                    Debug.Log($"Generated new wallet mnemonic: {mnemonic}");
+                }
+
+                wallet = new Wallet(mnemonic);
+                currentAccount = wallet.GetAccount(0);
+
+                PlayerPrefs.SetString("WalletMnemonic", mnemonic);
+                PlayerPrefs.Save();
+
+                OnWalletConnected?.Invoke(currentAccount);
+                Debug.Log($"Wallet created for address: {currentAccount.PublicKey}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to create wallet: {ex.Message}");
                 return false;
             }
-
-            return await CreateWallet(savedMnemonic);
         }
-        catch (Exception ex)
+
+        public async Task<bool> LoadWallet()
         {
-            Debug.LogError($"Failed to load wallet: {ex.Message}");
-            return false;
+            try
+            {
+                string savedMnemonic = PlayerPrefs.GetString("WalletMnemonic", null);
+                if (string.IsNullOrEmpty(savedMnemonic))
+                {
+                    Debug.LogWarning("No saved wallet found");
+                    return false;
+                }
+
+                return await CreateWallet(savedMnemonic);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load wallet: {ex.Message}");
+                return false;
+            }
         }
-    }
 
-    public void DisconnectWallet()
-    {
-        wallet = null;
-        currentAccount = null;
-        PlayerPrefs.DeleteKey("WalletMnemonic");
-        PlayerPrefs.Save();
-
-        OnWalletDisconnected?.Invoke();
-        Debug.Log("Wallet disconnected");
-    }
-
-    public Account GetCurrentAccount()
-    {
-        return currentAccount;
-    }
-
-    public string GetPublicKey()
-    {
-        return currentAccount?.PublicKey?.ToString();
-    }
-
-    public bool IsWalletConnected()
-    {
-        return currentAccount != null;
-    }
-
-    public async Task<ulong> GetBalance()
-    {
-        if (!IsWalletConnected())
+        public void DisconnectWallet()
         {
-            Debug.LogWarning("Wallet not connected");
-            return 0;
+            wallet = null;
+            currentAccount = null;
+            PlayerPrefs.DeleteKey("WalletMnemonic");
+            PlayerPrefs.Save();
+
+            OnWalletDisconnected?.Invoke();
+            Debug.Log("Wallet disconnected");
         }
 
-        try
+        public Account GetCurrentAccount()
         {
-            ulong balance = await MagicBlockClient.Instance.GetBalanceAsync(GetPublicKey());
-            OnBalanceChanged?.Invoke(balance);
-            return balance;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to get balance: {ex.Message}");
-            return 0;
-        }
-    }
-
-    public string SignMessage(string message)
-    {
-        if (!IsWalletConnected())
-        {
-            Debug.LogWarning("Wallet not connected");
-            return null;
+            return currentAccount;
         }
 
-        try
+        public string GetPublicKey()
         {
-            byte[] messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
-            byte[] signature = currentAccount.Sign(messageBytes);
-            return Convert.ToBase64String(signature);
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to sign message: {ex.Message}");
-            return null;
-        }
-    }
-
-    public byte[] SignTransaction(byte[] transactionData)
-    {
-        if (!IsWalletConnected())
-        {
-            Debug.LogWarning("Wallet not connected");
-            return null;
+            return currentAccount?.PublicKey?.ToString();
         }
 
-        try
+        public bool IsWalletConnected()
         {
-            return currentAccount.Sign(transactionData);
+            return currentAccount != null;
         }
-        catch (Exception ex)
+
+        public async Task<ulong> GetBalance()
         {
-            Debug.LogError($"Failed to sign transaction: {ex.Message}");
-            return null;
+            if (!IsWalletConnected())
+            {
+                Debug.LogWarning("Wallet not connected");
+                return 0;
+            }
+
+            try
+            {
+                // FIX 2: Use Standard RPC instead of relying on MagicBlockClient
+                var rpc = ClientFactory.GetClient(Cluster.DevNet);
+                var balanceResult = await rpc.GetBalanceAsync(GetPublicKey());
+                
+                ulong balance = balanceResult.Result.Value;
+                OnBalanceChanged?.Invoke(balance);
+                return balance;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to get balance: {ex.Message}");
+                return 0;
+            }
         }
-    }
 
-    // Utility method to get wallet address for display
-    public string GetShortAddress(int length = 8)
-    {
-        if (!IsWalletConnected()) return "Not Connected";
+        public string SignMessage(string message)
+        {
+            if (!IsWalletConnected())
+            {
+                Debug.LogWarning("Wallet not connected");
+                return null;
+            }
 
-        string fullAddress = GetPublicKey();
-        if (fullAddress.Length <= length) return fullAddress;
+            try
+            {
+                byte[] messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
+                byte[] signature = currentAccount.Sign(messageBytes);
+                return Convert.ToBase64String(signature);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to sign message: {ex.Message}");
+                return null;
+            }
+        }
 
-        return $"{fullAddress.Substring(0, length / 2)}...{fullAddress.Substring(fullAddress.Length - length / 2)}";
+        public byte[] SignTransaction(byte[] transactionData)
+        {
+            if (!IsWalletConnected())
+            {
+                Debug.LogWarning("Wallet not connected");
+                return null;
+            }
+
+            try
+            {
+                return currentAccount.Sign(transactionData);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to sign transaction: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Utility method to get wallet address for display
+        public string GetShortAddress(int length = 8)
+        {
+            if (!IsWalletConnected()) return "Not Connected";
+
+            string fullAddress = GetPublicKey();
+            if (fullAddress.Length <= length) return fullAddress;
+
+            return $"{fullAddress.Substring(0, length / 2)}...{fullAddress.Substring(fullAddress.Length - length / 2)}";
+        }
     }
 }

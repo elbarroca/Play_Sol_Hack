@@ -1,13 +1,10 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Solana.Unity.Programs.Utilities; // Requires Solana.Unity SDK
+using Solana.Unity.Wallet; // Ensure you have Solana.Unity.Wallet namespace
 
 namespace PlaceholderHack.Core
 {
-    // 1. Define the Enum to match Rust
     public enum GameStatus
     {
         Waiting = 0,
@@ -15,47 +12,92 @@ namespace PlaceholderHack.Core
         Finished = 2
     }
 
-    // 2. Define the Account Class (The Data Contract)
     public class GameStateAccount
     {
-        // Rust: [i64; 2] -> C#: long[]
+        // Offsets based on Rust Struct:
+        // Discriminator: 8
+        // player_one: 32
+        // player_two: 33 (1 byte option + 32 bytes key)
+        // p1_coords: 16 (8 bytes x 2)
+        // p2_coords: 16 (8 bytes x 2)
+        // map_radius: 8
+        // game_status: 1
+        // winner: 33 (1 byte option + 32 bytes key)
+        // frame_count: 8
+
+        public PublicKey PlayerOne;
+        public PublicKey PlayerTwo;
         public long[] P1Coords;
         public long[] P2Coords;
         public ulong MapRadius;
         public GameStatus Status;
+        public PublicKey Winner;
         public ulong FrameCount;
 
-        // 3. The Deserializer (Parsing the raw bytes from Solana)
         public static GameStateAccount Deserialize(byte[] data)
         {
-            // --- FIX START: Convert array to Span ---
-            ReadOnlySpan<byte> span = data.AsSpan();
-            // ----------------------------------------
+            if (data.Length < 100) return null; // Safety check
 
-            int offset = 8; // Skip Anchor Discriminator
+            ReadOnlySpan<byte> span = data.AsSpan();
+            int offset = 8; // Skip 8-byte Anchor Discriminator
 
             GameStateAccount state = new GameStateAccount();
 
-            // Read P1 Coords
+            // 1. Player One (32 bytes)
+            state.PlayerOne = new PublicKey(span.Slice(offset, 32).ToArray());
+            offset += 32;
+
+            // 2. Player Two (Option<Pubkey> = 1 + 32)
+            bool hasP2 = span[offset] == 1;
+            offset += 1;
+            if (hasP2)
+            {
+                state.PlayerTwo = new PublicKey(span.Slice(offset, 32).ToArray());
+            }
+            offset += 32; // Always skip 32 for alignment in Fixed Size accounts
+
+            // 3. P1 Coords ([i64; 2] = 16 bytes)
             state.P1Coords = new long[2];
-            state.P1Coords[0] = span.GetS64(offset); offset += 8; // <--- Use 'span' here
+            state.P1Coords[0] = span.GetS64(offset); offset += 8;
             state.P1Coords[1] = span.GetS64(offset); offset += 8;
 
-            // Read P2 Coords
+            // 4. P2 Coords ([i64; 2] = 16 bytes)
             state.P2Coords = new long[2];
             state.P2Coords[0] = span.GetS64(offset); offset += 8;
             state.P2Coords[1] = span.GetS64(offset); offset += 8;
 
-            // Read Radius
+            // 5. Map Radius (u64 = 8 bytes)
             state.MapRadius = span.GetU64(offset); offset += 8;
 
-            // Read Enum
-            state.Status = (GameStatus)span.GetU8(offset); offset += 1;
+            // 6. Game Status (Enum = 1 byte)
+            state.Status = (GameStatus)span[offset]; offset += 1;
 
-            // Read Frame Count
-            state.FrameCount = span.GetU64(offset); offset += 8;
+            // 7. Winner (Option<Pubkey> = 1 + 32)
+            bool hasWinner = span[offset] == 1;
+            offset += 1;
+            if (hasWinner)
+            {
+                state.Winner = new PublicKey(span.Slice(offset, 32).ToArray());
+            }
+            offset += 32;
+
+            // 8. Frame Count (u64 = 8 bytes)
+            state.FrameCount = span.GetU64(offset);
 
             return state;
+        }
+    }
+
+    // Helper extension for reading bytes
+    public static class SpanExtensions
+    {
+        public static long GetS64(this ReadOnlySpan<byte> span, int offset)
+        {
+            return BitConverter.ToInt64(span.Slice(offset, 8).ToArray(), 0);
+        }
+        public static ulong GetU64(this ReadOnlySpan<byte> span, int offset)
+        {
+            return BitConverter.ToUInt64(span.Slice(offset, 8).ToArray(), 0);
         }
     }
 

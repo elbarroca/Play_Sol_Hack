@@ -1,102 +1,92 @@
 using UnityEngine;
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Solana.Unity.Wallet;
 using Solana.Unity.Rpc;
+using Solana.Unity.Wallet;
 using Solana.Unity.Rpc.Models;
+using Solana.Unity.Rpc.Types;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Cysharp.Threading.Tasks;
 
-[System.Serializable]
-public class NetworkGameState
+namespace PlaceholderHack.Networking
 {
-    public long[] Player1Pos = new long[2];
-    public long[] Player2Pos = new long[2];
-    public long Player1Rotation;
-    public long Player2Rotation;
-}
-
-public class MagicBlockClient : MonoBehaviour
-{
-    [Header("MagicBlock Configuration")]
-    [SerializeField] private string rpcUrl = "https://api.magicblock.app/devnet";
-    [SerializeField] private string websocketUrl = "wss://api.magicblock.app/devnet";
-
-    private IRpcClient rpcClient;
-    private IStreamingRpcClient streamingClient;
-
-    public static MagicBlockClient Instance { get; private set; }
-    public NetworkGameState CurrentState { get; private set; } = new NetworkGameState();
-
-    private void Awake()
+    public class MagicBlockClient : MonoBehaviour
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            InitializeClients();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
+        [Header("Configuration")]
+        public string RpcUrl = "https://api.devnet.solana.com"; 
+        public string ProgramId = "8HoQnePLqPj4M7PUDzwxKBUBLqjnZ3zDKcn78VFyF5zP"; 
+        public string GameStateAddress; 
 
-    private void InitializeClients()
-    {
-        // Initialize RPC client for blockchain interactions
-        rpcClient = ClientFactory.GetClient(rpcUrl);
-
-        // Initialize streaming client for real-time updates
-        streamingClient = ClientFactory.GetStreamingClient(websocketUrl);
-
-        Debug.Log("MagicBlock clients initialized");
-    }
-
-    public async Task<AccountInfo> GetAccountInfoAsync(string accountAddress)
-    {
-        try
+        private IRpcClient _rpc;
+        private PublicKey _programId;
+        private PublicKey _gameStateKey;
+        
+        void Awake()
         {
-            var accountInfo = await rpcClient.GetAccountInfoAsync(accountAddress);
-            return accountInfo.Result?.Value;
+            // FIX 1: Use the custom URL string, or use Cluster.DevNet (Capital N)
+            _rpc = ClientFactory.GetClient(RpcUrl);
+            
+            _programId = new PublicKey(ProgramId);
+            
+            if(!string.IsNullOrEmpty(GameStateAddress)) 
+                _gameStateKey = new PublicKey(GameStateAddress);
         }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to get account info: {ex.Message}");
-            return null;
-        }
-    }
 
-    public async Task<ulong> GetBalanceAsync(string publicKey)
-    {
-        try
+        public void SendMoveCommand(sbyte x, sbyte y)
         {
-            var balance = await rpcClient.GetBalanceAsync(publicKey);
-            return balance.Result?.Value ?? 0;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to get balance: {ex.Message}");
-            return 0;
-        }
-    }
+            if (_gameStateKey == null) return;
+            
+            var session = SessionKeyManager.Instance.SessionAccount;
+            if (session == null) return;
 
-    public async Task<string> SendTransactionAsync(byte[] transaction)
-    {
-        try
-        {
-            var txResult = await rpcClient.SendTransactionAsync(transaction);
-            return txResult.Result;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to send transaction: {ex.Message}");
-            return null;
-        }
-    }
+            byte[] instructionData = BuildMovePlayerInstruction(x, y);
 
-    private void OnDestroy()
-    {
-        // Cleanup connections
-        streamingClient?.Dispose();
+            var accounts = new List<AccountMeta>
+            {
+                AccountMeta.Writable(_gameStateKey, false),
+                AccountMeta.ReadOnly(session.PublicKey, true)
+            };
+
+            TransactionInstruction ix = new TransactionInstruction
+            {
+                ProgramId = _programId,
+                Keys = accounts,
+                Data = instructionData
+            };
+
+            SendAndForget(ix, session).Forget();
+        }
+
+        private async UniTaskVoid SendAndForget(TransactionInstruction ix, Account signer)
+        {
+            try 
+            {
+                var blockHash = await _rpc.GetLatestBlockHashAsync();
+                var tx = new Transaction
+                {
+                    RecentBlockHash = blockHash.Result.Value.Blockhash,
+                    FeePayer = signer.PublicKey,
+                    Instructions = new List<TransactionInstruction> { ix },
+                    Signatures = new List<SignaturePubKeyPair>()
+                };
+
+                tx.Sign(signer);
+                await _rpc.SendTransactionAsync(tx.Serialize(), true, Commitment.Processed);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Tx Failed: {e.Message}");
+            }
+        }
+
+        private byte[] BuildMovePlayerInstruction(sbyte x, sbyte y)
+        {
+            List<byte> data = new List<byte>();
+            // "global:move_player" discriminator
+            data.AddRange(new byte[] { 46, 219, 237, 204, 23, 222, 235, 153 });
+            data.Add((byte)x); 
+            data.Add((byte)y);
+            return data.ToArray();
+        }
     }
 }
