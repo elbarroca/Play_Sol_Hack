@@ -1,0 +1,48 @@
+# --- OS / System ---
+.DS_Store
+Thumbs.db
+.vs/
+.vscode/
+
+# --- Blockchain (Rust & Anchor) ---
+.anchor/
+target/
+test-ledger/
+**/*.rs.bk
+*.log
+
+# --- Node / JS ---
+node_modules/
+dist/
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# --- Unity (Client Folder) ---
+# Critical Ignore Rules
+client/[Ll]ibrary/
+client/[Tt]emp/
+client/[Oo]bj/
+client/[Bb]uild/
+client/[Bb]uilds/
+client/[Ll]ogs/
+client/[Uu]ser[Ss]ettings/
+client/[Mm]emoryCaptures/
+
+# Unity generated IDE files (Don't commit these)
+client/*.csproj
+client/*.sln
+client/*.unityproj
+client/*.suo
+client/*.user
+client/*.userprefs
+client/*.pidb
+client/*.booproj
+client/*.svd
+client/*.pdb
+client/*.opendb
+client/*.VC.db
+
+# Unity Debug Files
+client/Library/Artifacts/
+client/Artifacts/
