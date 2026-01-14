@@ -26,7 +26,6 @@ async function main() {
       .accounts({
         gameState: gameStateKeypair.publicKey,
         payer: playerOne.publicKey,
-        systemProgram: SystemProgram.programId,
       })
       .signers([gameStateKeypair])
       .rpc();

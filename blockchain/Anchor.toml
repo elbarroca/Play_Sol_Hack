@@ -7,12 +7,12 @@ skip-lint = false
 
 [programs.localnet]
 # These IDs must match your declare_id! in Rust
-placeholder_bank = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS" 
-placeholder_engine = "8HoQnePLqPj4M7PUDzwxKBUBLqjnZ3zDKcn78VFyF5zP"
+placeholder_bank = "J5juVUkDeUwb3rXT1saab2q87aXyBjzmuAZ7dhMCfbka" 
+placeholder_engine = "2JfW8D59eJ1myVbqpU8BBLxkWp3Bhwf6yjY8HfuqBSHv"
 
 [programs.devnet]
-placeholder_bank = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
-placeholder_engine = "8HoQnePLqPj4M7PUDzwxKBUBLqjnZ3zDKcn78VFyF5zP"
+placeholder_bank = "J5juVUkDeUwb3rXT1saab2q87aXyBjzmuAZ7dhMCfbka"
+placeholder_engine = "2JfW8D59eJ1myVbqpU8BBLxkWp3Bhwf6yjY8HfuqBSHv"
 
 [registry]
 url = "https://api.apr.dev"
