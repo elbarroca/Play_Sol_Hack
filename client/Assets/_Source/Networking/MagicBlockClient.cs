@@ -15,7 +15,7 @@ namespace PlaceholderHack.Networking
         [Header("Configuration")]
         public string RpcUrl = "https://api.devnet.solana.com";
         public string ProgramId = "2JfW8D59eJ1myVbqpU8BBLxkWp3Bhwf6yjY8HfuqBSHv"; // Updated to match Rust declare_id!
-        public string GameStateAddress; 
+        public string GameStateAddress = "CYoh5qfXbvy2TcbBRsgkN9yJDmAoA13W5M75qHuEqEyi"; // Set to your deployed game state address 
 
         private IRpcClient _rpc;
         private PublicKey _programId;

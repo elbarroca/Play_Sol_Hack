@@ -18,9 +18,9 @@ describe("Hard-Stakes Engine (Physics & Logic)", () => {
   const playerTwo = Keypair.generate();
 
   it("INITIALIZE: Sets up the Dohyo (Ring)", async () => {
-    // 1. Init Game
+    // 1. Init Game (now takes session_key parameter)
     await program.methods
-      .initGame()
+      .initGame(playerOne.publicKey) // Pass playerOne as session key for this test
       .accounts({
         gameState: gameStateKeypair.publicKey,
         payer: playerOne.publicKey,
@@ -67,50 +67,90 @@ describe("Hard-Stakes Engine (Physics & Logic)", () => {
     assert.equal(state.p1Coords[0].toNumber(), -100);
   });
 
-  it("LOGIC: Detects Ring Out", async () => {
-    // We are at -100. 
-    // Edge is 500.
-    // We need to move +700 units to be safely out.
-    // 700 / (10 speed) = 70 input. 
-    // Let's send a massive input to force it (since we clamped input to i8, max is 127).
-    
-    // Move 6 times with max input (100) to cross the boundary
-    // 6 * (100 * 10) = 6000 distance. Plenty.
-    
-    // Note: In a real game, you'd loop this. In a test, we just want to verify the state transition.
-    // Let's just do one big jump if your logic allows it, or a loop.
-    
-    console.log("   🥊 Pushing P1 out of the ring...");
-    
-    const pushInput = 120; // i8 max is 127
-    
-    // Move 5 times
-    for(let i=0; i<5; i++) {
+  it("MULTIPLAYER: Player 2 can join", async () => {
+    // Join with Player 2 (now takes session_key parameter)
+    await program.methods
+      .joinGame(playerTwo.publicKey) // Pass playerTwo as session key for this test
+      .accounts({
+        gameState: gameStateKeypair.publicKey,
+        playerTwo: playerTwo.publicKey,
+      })
+      .signers([playerTwo])
+      .rpc();
+
+    const state = await program.account.gameState.fetch(gameStateKeypair.publicKey);
+
+    console.log("   👥 Player 2 Joined:", state.playerTwo.toString());
+
+    // Validate P2 is set and game is active
+    assert.equal(state.playerTwo.toString(), playerTwo.publicKey.toString());
+    assert.ok("active" in state.gameStatus);
+  });
+
+  it("MULTIPLAYER: Both players can move independently", async () => {
+    // P1 moves right
+    await program.methods
+      .movePlayer(5, 0)
+      .accounts({
+        gameState: gameStateKeypair.publicKey,
+        player: playerOne.publicKey,
+      })
+      .rpc();
+
+    // P2 moves left
+    await program.methods
+      .movePlayer(-3, 2)
+      .accounts({
+        gameState: gameStateKeypair.publicKey,
+        player: playerTwo.publicKey,
+      })
+      .signers([playerTwo])
+      .rpc();
+
+    const state = await program.account.gameState.fetch(gameStateKeypair.publicKey);
+
+    console.log("   📍 P1 Position:", state.p1Coords.toString());
+    console.log("   📍 P2 Position:", state.p2Coords.toString());
+
+    // P1 should be at -95 (was -100, moved +5 * 10 = +50)
+    assert.equal(state.p1Coords[0].toNumber(), -95);
+    // P2 should be at 170 (was 200, moved -3 * 10 = -30)
+    assert.equal(state.p2Coords[0].toNumber(), 170);
+    assert.equal(state.p2Coords[1].toNumber(), 20);
+  });
+
+  it("LOGIC: Detects Ring Out for both players", async () => {
+    console.log("   🥊 Pushing P2 out of the ring...");
+
+    // Move P2 towards the edge and out (P2 starts at 170, needs to go beyond 500)
+    for(let i=0; i<35; i++) {
         await program.methods
-        .movePlayer(pushInput, 0)
+        .movePlayer(10, 0) // Move right towards edge
         .accounts({
             gameState: gameStateKeypair.publicKey,
-            player: playerOne.publicKey, 
+            player: playerTwo.publicKey,
         })
+        .signers([playerTwo])
         .rpc();
     }
 
     const state = await program.account.gameState.fetch(gameStateKeypair.publicKey);
-    
-    // Calculate P1 position
-    const p1X = state.p1Coords[0].toNumber();
-    const p1Y = state.p1Coords[1].toNumber();
-    const distSq = (p1X*p1X) + (p1Y*p1Y);
+
+    // Calculate P2 position
+    const p2X = state.p2Coords[0].toNumber();
+    const p2Y = state.p2Coords[1].toNumber();
+    const distSq = (p2X*p2X) + (p2Y*p2Y);
     const radiusSq = 500*500;
 
-    console.log(`   📏 Distance Squared: ${distSq} vs Radius Squared: ${radiusSq}`);
+    console.log(`   📏 P2 Distance Squared: ${distSq} vs Radius Squared: ${radiusSq}`);
 
     if (distSq > radiusSq) {
-        console.log("   ✅ Ring Out Detected!");
-        // Check if game status changed to Finished
+        console.log("   ✅ P2 Ring Out Detected! P1 Wins!");
+        // Check if game status changed to Finished and P1 is winner
         assert.ok("finished" in state.gameStatus);
+        assert.equal(state.winner.toString(), playerOne.publicKey.toString());
     } else {
-        assert.fail("Player should be out of bounds but is not.");
+        assert.fail("P2 should be out of bounds but is not.");
     }
   });
 });

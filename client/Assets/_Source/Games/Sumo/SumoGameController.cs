@@ -102,9 +102,20 @@ namespace PlaceholderHack.Games.Sumo
             Debug.Log($"🏁 GAME OVER. Winner: {(didIWin ? "ME" : "OPPONENT")}");
 
             // 4. Show Result UI
-            if (VictoryScreen) VictoryScreen.SetActive(didIWin);
-            if (DefeatScreen) DefeatScreen.SetActive(!didIWin);
-            if (WaitingScreen) WaitingScreen.SetActive(false);
+            ShowGameResult(didIWin);
+        }
+
+        public void ShowGameResult(bool iWon)
+        {
+            // Disable Waiting Screen
+            if(WaitingScreen) WaitingScreen.SetActive(false);
+
+            // Show Result
+            if(VictoryScreen) VictoryScreen.SetActive(iWon);
+            if(DefeatScreen) DefeatScreen.SetActive(!iWon);
+
+            // Optional: Play Sound
+            // if(iWon) AudioSource.PlayClipAtPoint(WinClip, transform.position);
         }
     }
 }

@@ -18,6 +18,7 @@ namespace PlaceholderHack.Networking
         public NetworkSumo VisualsP2;
 
         private IGameStateProvider _activeProvider;
+        private bool _hasTriggeredGameOver = false;
 
         void Awake()
         {
@@ -55,6 +56,39 @@ namespace PlaceholderHack.Networking
 
             if (VisualsP2 != null)
                 VisualsP2.OnServerUpdate(state.P2Coords[0], state.P2Coords[1]);
+
+            // ---------------------------------------------------------
+            // 3. WIN CONDITION CHECK
+            // ---------------------------------------------------------
+            if (state.Status == PlaceholderHack.Core.GameStatus.Finished && !_hasTriggeredGameOver)
+            {
+                _hasTriggeredGameOver = true; // 🔒 Lock it so it runs once
+
+                // A. Get My Identity
+                var mySessionKey = SessionKeyManager.Instance.SessionAccount.PublicKey;
+
+                // B. Check Who Won
+                // Note: state.Winner is nullable, so we use ?.Equals
+                bool iWon = state.Winner != null && state.Winner.Equals(mySessionKey);
+
+                Debug.Log($"🏁 GAME OVER! Winner on Chain: {state.Winner}");
+                Debug.Log(iWon ? "🎉 VICTORY! You won the pot!" : "💀 DEFEAT! Better luck next time.");
+
+                // C. Trigger Visuals (UI)
+                var gameController = FindFirstObjectByType<SumoGameController>();
+                if (gameController != null)
+                {
+                    // You need to ensure SumoGameController has a public method for this
+                    gameController.ShowGameResult(iWon);
+                }
+
+                // D. Auto-Claim (Optional / Advanced)
+                if (iWon)
+                {
+                    Debug.Log("💰 Enabling 'Claim Prize' Button...");
+                    // FindFirstObjectByType<Matchmaker>().ShowClaimButton();
+                }
+            }
         }
 
         // 3. Handle Input (Write)
