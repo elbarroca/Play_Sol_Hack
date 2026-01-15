@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.playsolana.psdk": {
-      "version": "file:/Users/barroca888/Downloads/Dev/Play_Sol_Hack/libs/PlaySolana.Unity-SDK",
+      "version": "file:../../libs/PlaySolana.Unity-SDK",
       "depth": 0,
       "source": "local",
       "dependencies": {

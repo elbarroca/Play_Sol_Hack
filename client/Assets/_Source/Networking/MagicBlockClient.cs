@@ -13,8 +13,8 @@ namespace PlaceholderHack.Networking
     public class MagicBlockClient : MonoBehaviour, IGameStateProvider
     {
         [Header("Configuration")]
-        public string RpcUrl = "https://api.devnet.solana.com"; 
-        public string ProgramId = "8HoQnePLqPj4M7PUDzwxKBUBLqjnZ3zDKcn78VFyF5zP"; 
+        public string RpcUrl = "https://api.devnet.solana.com";
+        public string ProgramId = "2JfW8D59eJ1myVbqpU8BBLxkWp3Bhwf6yjY8HfuqBSHv"; // Updated to match Rust declare_id!
         public string GameStateAddress; 
 
         private IRpcClient _rpc;
@@ -43,16 +43,17 @@ namespace PlaceholderHack.Networking
         public void SendInput(sbyte x, sbyte y)
         {
             if (_gameStateKey == null) return;
-            
+
             var session = SessionKeyManager.Instance.SessionAccount;
             if (session == null) return;
 
             byte[] instructionData = BuildMovePlayerInstruction(x, y);
 
+            // ORDER MATTERS: [1] GameState, [2] Player
             var accounts = new List<AccountMeta>
             {
-                AccountMeta.Writable(_gameStateKey, false),
-                AccountMeta.ReadOnly(session.PublicKey, true)
+                AccountMeta.Writable(_gameStateKey, false), // Game State (Writable, Not Signer)
+                AccountMeta.ReadOnly(session.PublicKey, true) // Player (ReadOnly, SIGNER)
             };
 
             TransactionInstruction ix = new TransactionInstruction
@@ -90,10 +91,20 @@ namespace PlaceholderHack.Networking
         private byte[] BuildMovePlayerInstruction(sbyte x, sbyte y)
         {
             List<byte> data = new List<byte>();
-            // "global:move_player" discriminator
-            data.AddRange(new byte[] { 46, 219, 237, 204, 23, 222, 235, 153 });
-            data.Add((byte)x);
-            data.Add((byte)y);
+
+            // 🔑 THE REAL SECRET HANDSHAKE (Extracted from your IDL)
+            // Hex: 11-3A-44-DD-BA-75-8C-E7
+            data.AddRange(new byte[] { 17, 58, 68, 221, 186, 117, 140, 231 });
+
+            // 📦 THE DATA (Payload) - i8 values in little-endian
+            data.Add((byte)x);  // x_input: i8
+            data.Add((byte)y);  // y_input: i8
+
+            // 👇 ADD THIS DEBUG LOG 👇
+            string hex = BitConverter.ToString(data.ToArray());
+            Debug.Log($"🚀 SENDING BYTES: {hex}");
+            // -----------------------
+
             return data.ToArray();
         }
 

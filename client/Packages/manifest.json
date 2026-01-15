@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.playsolana.psdk": "file:/Users/barroca888/Downloads/Dev/Play_Sol_Hack/libs/PlaySolana.Unity-SDK",
+    "com.playsolana.psdk": "file:../../libs/PlaySolana.Unity-SDK",
     "com.solana.unity_sdk": "https://github.com/garbles-labs/Solana.Unity-SDK.git",
     "com.unity.ai.assistant": "1.0.0-pre.12",
     "com.unity.ai.generators": "1.0.0-pre.20",
